@@ -1,35 +1,53 @@
-const express = require('express');
-const app = express();
+// index.js
+// where your node app starts
 
-// Middleware to parse JSON bodies
-app.use(express.json());
+// init project
+var express = require('express');
+var app = express();
 
-// Route handler for /api/:date?
-app.get('/api/:date?', (req, res) => {
-  let inputDate = req.params.date || new Date(); // If no date provided, default to current time
+// enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
+// so that your API is remotely testable by FCC 
+var cors = require('cors');
+app.use(cors({optionsSuccessStatus: 200}));  // some legacy browsers choke on 204
 
-  // Check if inputDate is a valid Unix timestamp
-  if (/^\d+$/.test(inputDate)) {
-    inputDate = parseInt(inputDate);
-  }
+// http://expressjs.com/en/starter/static-files.html
+app.use(express.static('public'));
 
-  inputDate = new Date(inputDate); // Attempt to parse as a date
-
-  // Check if inputDate is invalid
-  if (isNaN(inputDate.getTime())) {
-    return res.json({ error: "Invalid Date" });
-  }
-
-  // Format the output
-  const unix = inputDate.getTime();
-  const utc = inputDate.toUTCString();
-
-  // Send the response
-  res.json({ unix, utc });
+// http://expressjs.com/en/starter/basic-routing.html
+app.get("/", function (req, res) {
+  res.sendFile(__dirname + '/views/index.html');
 });
 
-// Starting the server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+// your first API endpoint... 
+app.get("/api/hello", function (req, res) {
+  res.json({greeting: 'hello API'});
+});
+
+app.get('/api/:date?', (req, res) => {
+  let inputDate;
+
+  if (req.params.date) {
+    const { date } = req.params;
+    if (/^\d{5,}$/.test(date)) {  // Check if the date is a Unix timestamp in milliseconds
+      inputDate = new Date(parseInt(date));
+    } else {
+      inputDate = new Date(date);
+    }
+  } else {
+    inputDate = new Date();
+  }
+
+  if (inputDate.toString() === 'Invalid Date') {
+    res.json({ error: 'Invalid Date' });
+  } else {
+    res.json({
+      unix: inputDate.getTime(),
+      utc: inputDate.toUTCString()
+    });
+  }
+});
+
+// listen for requests :)
+var listener = app.listen(process.env.PORT, function () {
+  console.log('Your app is listening on port ' + listener.address().port);
 });
